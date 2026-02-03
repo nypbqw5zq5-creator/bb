@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUNKER | PROBABILITY EDITION</title>
+    <style>
+        :root { --yellow: #ffcc00; --black: #000; --dark: #111; }
+        * { box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes hazardScroll { from { background-position: 0 0; } to { background-position: 40px 0; } }
+
+        body { 
+            background: var(--yellow); 
+            color: var(--black); 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            text-transform: uppercase; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+
+        .hazard-stripe { 
+            width: 100%; 
+            height: 15px; 
+            background: repeating-linear-gradient(-45deg, var(--black), var(--black) 10px, #e6b800 10px, #e6b800 20px); 
+            border-bottom: 2px solid var(--black); 
+            margin-bottom: 20px;
+            animation: hazardScroll 2s linear infinite;
+        }
+
+        .screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 420px; animation: fadeIn 0.5s ease; }
+        .active { display: flex; }
+
+        .start-img {
+            width: 100%;
+            border: 6px solid var(--black);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
+        }
+
+        .id-card { 
+            width: 100%; 
+            background: var(--black); 
+            color: var(--yellow);
+            border-radius: 20px;
+            padding: 25px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .trait-line { border-bottom: 1px solid #222; padding: 12px 0; }
+        .label { font-size: 0.65rem; color: var(--yellow); opacity: 0.5; font-weight: 800; }
+        .val { font-size: 1.05rem; color: #fff; font-weight: 900; margin-top: 5px; text-transform: none; }
+
+        button { 
+            background: var(--black); 
+            color: var(--yellow); 
+            border: none;
+            padding: 20px; 
+            cursor: pointer; 
+            font-weight: 900; 
+            width: 100%; 
+            margin: 8px 0; 
+            border-radius: 12px;
+            box-shadow: 0 4px 0px #444;
+        }
+        button:active { transform: translateY(4px); box-shadow: none; }
+
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            backdrop-filter: blur(8px);
+            z-index: 1000; 
+            flex-direction: column; 
+            justify-content: flex-end; 
+        }
+
+        .modal-content { 
+            background: var(--black); 
+            color: var(--yellow);
+            border-top: 4px solid var(--yellow);
+            padding: 30px; 
+            width: 100%; 
+            max-width: 450px;
+            border-radius: 30px 30px 0 0;
+            max-height: 85vh; 
+            overflow-y: auto; 
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .select-item { padding: 18px; border: 1px solid #333; margin: 10px 0; border-radius: 15px; background: #0a0a0a; text-transform: none; cursor: pointer; }
+
+        input { background: #fff; border: 4px solid var(--black); padding: 18px; width: 100%; text-align: center; font-size: 1.3rem; margin-bottom: 20px; font-weight: 900; border-radius: 12px; }
+    </style>
+</head>
+<body>
+    <div class="hazard-stripe"></div>
+
+    <div id="lang-screen" class="screen active">
+        <img src="https://znaemigraem.ru/upload/iblock/e5a/qjcsa3sh7q7ktdwk7mf3y778aaxemhf1/bunker_anons.jpg" class="start-img">
+        <button onclick="setLang('ru')">РУССКИЙ</button>
+        <button onclick="setLang('en')">ENGLISH</button>
+        <button onclick="setLang('am')">ՀԱՅԵՐԵՆ</button>
+    </div>
+
+    <div id="login" class="screen">
+        <h2 id="l-title"></h2>
+        <input type="text" id="nameInput">
+        <button onclick="init()" id="l-btn"></button>
+    </div>
+
+    <div id="terminal" class="screen">
+        <h3 id="top-name"></h3>
+        <div class="id-card" id="main-card"></div>
+        <button onclick="openTraits()" id="b-reveal" style="background:#fff; color:#000;"></button>
+        <div style="display:flex; gap:10px; width:100%">
+            <button onclick="toggleModal('m-cat')" id="b-cat"></button>
+            <button onclick="toggleModal('m-bun')" id="b-bun"></button>
+        </div>
+        <button onclick="location.reload()" style="background:#555; color:#fff; font-size:0.7rem;">REBOOT SYSTEM</button>
+    </div>
+
+    <div id="m-traits" class="modal"><div class="modal-content"><h3 id="m-title"></h3><div id="traits-options"></div><button onclick="toggleModal('m-traits')" style="background:#ff3333; color:#fff">X</button></div></div>
+    <div id="m-cat" class="modal"><div class="modal-content"><h2 style="color:#ff3333">EVENT</h2><p id="cat-text" style="color:#fff; text-transform:none;"></p><button onclick="toggleModal('m-cat')">OK</button></div></div>
+    <div id="m-bun" class="modal"><div class="modal-content"><h2 style="color:#00ccff">SHELTER</h2><p id="bun-text" style="color:#fff; text-transform:none;"></p><button onclick="toggleModal('m-bun')">OK</button></div></div>
+
+    <script>
+        // ... Same massive 'data' object from before ...
+        const data = {
+            profs: ["Хирург", "Терапевт", "Пожарный", "Военный", "Снайпер", "Полицейский", "Инженер", "Электрик", "Механик", "Плотник", "Строитель", "Архитектор", "Фермер", "Агроном", "Биолог", "Химик", "Фармацевт", "Программист", "Специалист по кибербезопасности", "Повар", "Кондитер", "Ветеринар", "Психолог", "Психиатр", "Журналист", "Учитель", "Геолог", "Моряк", "Пилот", "Водитель грузовика", "Охотник", "Рыбак", "Спасатель", "Парамедик", "Радист", "Электроник", "Судмедэксперт", "Инструктор по выживанию", "Разведчик", "Тактик", "Бизнесмен", "Бухгалтер", "Металлург", "Тренер", "Физик", "Лаборант", "Дипломат", "Картограф", "Специалист по альтернативной энергетике", "Социальный работник"],
+            profs_18: ["Стриптизёр", "Эротический массажист", "Взрослый контент-модератор", "Подпольный клубный промоутер", "Сексуальный терапевт"],
+            health: ["Аллергия на пыльцу", "Аллергия на пищу", "Хроническая астма", "Сердечная болезнь", "Сахарный диабет", "Проблемы со зрением", "Проблемы со слухом", "Травма спины", "Проблемы с суставами", "Эпилепсия", "Хроническая усталость", "Высокое давление", "Низкое давление", "Проблемы с почками", "Проблемы с печенью", "Проблемы с лёгкими", "Сколиоз", "Ожирение", "Недостаток витаминов", "Анемия", "Проблемы с зубами", "Хроническая мигрень", "Бессонница", "Проблемы с кожей", "Грыжа", "Психологические расстройства", "Алкогольная зависимость", "Наркозависимость", "Инфекции", "ВИЧ положительный", "Проблемы с иммунитетом", "Редкие болезни"],
+            health_18: ["Экзотическая инфекция", "Опасный вирус", "Редкая смертельная болезнь", "Психопатология"],
+            hobbies: ["Фотография", "Рисование", "Шахматы", "Пение", "Танцы", "Йога", "Кулинария", "Гейминг", "Путешествия", "Рукоделие", "Коллекционирование марок", "Вышивание", "Флористика", "Садоводство", "Рыбалка", "Охота", "Плавание", "Велоспорт", "Бег", "Боевые искусства", "Медитация", "Настольные игры", "Лепка из глины", "Чтение", "Писательство", "Астрономия", "Программирование", "Киберспорт", "Ролевые игры", "Музыка", "Вокал", "Театр"],
+            hobbies_18: ["Эротические ролевые игры", "Подпольные вечеринки", "Экстремальные развлечения"],
+            baggage: ["Палатка", "Спальный мешок", "Еда на неделю", "Вода", "Радио", "Аптечка", "Фонарик", "Нож", "Мультитул", "Компасы", "Карта", "Одежда", "Тёплое одеяло", "Средства защиты", "Инструменты", "Топор", "Верёвка", "Огнетушитель", "Бинокль", "Рация", "Патроны", "Рюкзак", "Газовая горелка", "Котелок", "Лопата", "Генератор", "Аккумулятор", "Солнцезащитные очки", "Книги", "Ноутбук", "Фотоаппарат", "Маска"],
+            baggage_18: ["Алкоголь", "Огнестрельное оружие", "Экстремальные наркотики", "Необычные устройства", "Запрещённые книги"],
+            facts: ["Бывший заключённый", "Проходил военную службу", "Есть ребёнок", "Не имеет детей", "Замужем/женат", "В разводе", "Сирота", "Потерял родителей", "Есть приёмные дети", "Имеет богатых родственников", "Образование высшее", "Образование среднее", "Образование начальное", "Участвовал в соревнованиях", "Выигрывал призы", "Путешествовал по миру", "Секретная информация", "Занимался криминалом", "Ведёт блог", "Участвовал в протестах", "Религиозен", "Атеист", "Бывший наркозависимый", "Инвалид", "Спортсмен", "Музыкант", "Художник", "Писатель", "Танцор", "Инженер", "Повар", "Ученый", "Бизнесмен", "Журналист", "Психолог", "Механик", "Водитель", "Пилот", "Строитель", "Разведчик", "Парамедик", "Фермер", "Химик", "Биолог", "Энергетик", "Техник", "Социальный работник", "Юрист", "Дипломат"],
+            facts_18: ["Сексуальный скандал", "Криминальное прошлое", "Запретная тайна", "Рискованная привычка"],
+            orient: ["Гетеросексуален/Гетеросексуальна", "Гомосексуален/Гомосексуальна", "Бисексуален/Бисексуальна", "Асексуален/Асексуальна"]
+        };
+
+        const i18n = {
+            ru: { labels: ["Профессия", "Биология", "Здоровье", "Хобби", "Багаж", "Факт"], y: "лет", m: "Мужчина", f: "Женщина", lT: "ДОСТУП", lB: "СОЗДАТЬ", lP: "ИМЯ", bR: "ОТКРЫТЬ", bC: "СОБЫТИЕ", bB: "БУНКЕР" },
+            en: { labels: ["Profession", "Biology", "Health", "Hobby", "Baggage", "Fact"], y: "years", m: "Male", f: "Female", lT: "ACCESS", lB: "START", lP: "NAME", bR: "UNLOCK", bC: "EVENT", bB: "SHELTER" },
+            am: { labels: ["Մասնագիտություն", "Կենսաբանություն", "Առողջություն", "Հոբբի", "Ուղեբեռ", "Փաստ"], y: "տարեկան", m: "Տղամարդ", f: "Կին", lT: "ՄՈՒՏՔ", lB: "ՍԿՍԵԼ", lP: "ԱՆՈՒՆ", bR: "ԲԱՑԵԼ", bC: "ԱՂԵՏ", bB: "ԲՈՒՆԿԵՐ" }
+        };
+
+        let cur = 'ru';
+        let state = { char: [], opened: [] };
+
+        function setLang(l) { cur = l; document.getElementById('lang-screen').classList.remove('active'); document.getElementById('login').classList.add('active'); const t = i18n[cur]; document.getElementById('l-title').innerText = t.lT; document.getElementById('l-btn').innerText = t.lB; document.getElementById('nameInput').placeholder = t.lP; }
+
+        function getWeightedOrient() {
+            let r = Math.random() * 100;
+            if (r < 70) return data.orient[0]; // Hetero 70%
+            if (r < 80) return data.orient[1]; // Homo 10%
+            if (r < 90) return data.orient[2]; // Bi 10%
+            return data.orient[3];             // Ace 10%
+        }
+
+        function getRand(main, extra) {
+            return (Math.random() < 0.25) ? extra[Math.floor(Math.random()*extra.length)] : main[Math.floor(Math.random()*main.length)];
+        }
+
+        function init() {
+            const t = i18n[cur];
+            const age = Math.floor(Math.random() * (100 - 18 + 1)) + 18;
+            const gender = Math.random() > 0.5 ? t.m : t.f;
+            const orient = getWeightedOrient();
+            
+            state.char = [
+                getRand(data.profs, data.profs_18),
+                `${gender}, ${age} ${t.y}, ${orient}`,
+                getRand(data.health, data.health_18),
+                getRand(data.hobbies, data.hobbies_18),
+                getRand(data.baggage, data.baggage_18),
+                getRand(data.facts, data.facts_18)
+            ];
+
+            document.getElementById('login').classList.remove('active');
+            document.getElementById('terminal').classList.add('active');
+            document.getElementById('top-name').innerText = `SUBJECT: ${document.getElementById('nameInput').value || 'UNKNOWN'}`;
+            document.getElementById('b-reveal').innerText = t.bR;
+            document.getElementById('b-cat').innerText = t.bC;
+            document.getElementById('b-bun').innerText = t.bB;
+            document.getElementById('cat-text').innerText = "Ядерная зима. Радиация 100%. Выживание на поверхности невозможно.";
+            document.getElementById('bun-text').innerText = "Бункер запечатан на 1 год. Ресурсов хватит на 10 человек.";
+            updateCard();
+        }
+
+        function updateCard() {
+            const container = document.getElementById('main-card'); container.innerHTML = "";
+            i18n[cur].labels.forEach((l, i) => { container.innerHTML += `<div class="trait-line"><div class="label">${l}</div><div class="val">${state.opened.includes(i) ? state.char[i] : "••••••••••••"}</div></div>`; });
+        }
+
+        function openTraits() {
+            const options = document.getElementById('traits-options'); options.innerHTML = "";
+            i18n[cur].labels.forEach((l, i) => {
+                if(state.opened.includes(i)) return;
+                let div = document.createElement('div'); div.className = "select-item";
+                div.innerHTML = `<div class="label">${l}</div><div>${state.char[i]}</div>`;
+                div.onclick = () => { state.opened.push(i); updateCard(); toggleModal('m-traits'); };
+                options.appendChild(div);
+            });
+            toggleModal('m-traits');
+        }
+
+        function toggleModal(id) { let m = document.getElementById(id); m.style.display = (m.style.display === 'flex' ? 'none' : 'flex'); }
+    </script>
+</body>
+</html>
